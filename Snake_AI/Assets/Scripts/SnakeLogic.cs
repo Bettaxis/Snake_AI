@@ -4,37 +4,98 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 
+
+public enum Features
+{
+    //LeftDir,
+    //RightDir,
+    //TopDir,
+    //BottomDir,
+    //SnakeX,
+    //SnakeY,
+    FoodX,
+    FoodY,
+    FoodDirX,
+    FoodDirY,
+    DistToFood,
+    //FoodDirection,
+    COUNT
+}
+
+public enum Outputs
+{
+    NONE,
+    Left,
+    Up,
+    Down,
+    Right
+}
+
 public class SnakeLogic : MonoBehaviour
 {
     List<Transform> tail = new List<Transform>();
 
     GameObject Food;
 
-    //private NeuralNet Brain;
+    Perceptron snakeyLeft = new Perceptron((int)Features.COUNT);
+    Perceptron snakeyRight = new Perceptron((int)Features.COUNT);
+    Perceptron snakeyUp = new Perceptron((int)Features.COUNT);
+    Perceptron snakeyDown = new Perceptron((int)Features.COUNT);
 
-    float[] vision = new float[24]; //The inputs for the neural
-    float[] decision; // Output
+    //Outputs result = Outputs.NONE;
 
-    int lifetime = 0;
+    //float[] vision = new float[24]; //The inputs for the neural
+    //float[] decision; // Output
 
-    long fitness = 0;
+    //int lifetime = 0;
 
-    int leftToLive = 200;
+    //long fitness = 0;
 
-    int growCount = 0;
+    int movesLeft = 200;
+
+    //int growCount = 0;
 
     int len = 1; // Length of Snake
+
+    float perceptronUpOutput = 0.0f;
+    float perceptronDownOutput = 0.0f;
+    float perceptronLeftOutput = 0.0f;
+    float perceptronRightOutput = 0.0f;
+
+    // Initialize Feature Values
+    float foodX, foodY, foodDirX, foodDirY = 0;
+    Vector2 FoodDirection = new Vector2(0, 0);
+    float DistanceToFood = 0;
 
     //Set Initial Direction to Move
     Vector2 dir = Vector2.right;
 
-    bool alive = true;
-    bool testing = false;
+    //bool alive = true;
+    //bool testing = false;
 
     // Use this for initialization
     void Start()
     {
-        InvokeRepeating("Move", 0.1f, 0.1f);
+        InvokeRepeating("Move", .1f, .1f);
+        Food = GameObject.FindGameObjectWithTag("Food");
+
+        float[] weightVector = new float[(int)Features.COUNT];
+
+        weightVector[(int)Features.FoodX] = 0.4f;
+        weightVector[(int)Features.FoodY] = 0.4f;
+        weightVector[(int)Features.FoodDirX] = 0.7f;
+        weightVector[(int)Features.FoodDirY] = 0.7f;
+        weightVector[(int)Features.DistToFood] = 0.8f;
+
+        snakeyUp.bias = 0.0f;
+        snakeyDown.bias = 0.0f;
+        snakeyLeft.bias = 0.0f;
+        snakeyRight.bias = 0.0f;
+    
+        snakeyUp.SetWeights(weightVector);
+        snakeyLeft.SetWeights(weightVector);
+        snakeyRight.SetWeights(weightVector);
+        snakeyDown.SetWeights(weightVector);
     }
 
     // Update is called once per frame
@@ -51,14 +112,135 @@ public class SnakeLogic : MonoBehaviour
 
         else if (Input.GetKey(KeyCode.UpArrow) && dir != Vector2.down)
             dir = Vector2.up;
+
+
+        Food = GameObject.FindGameObjectWithTag("Food");
+
+        //Vector to Hold Direction from Snake To Food
+        Vector2 FoodDirection = Food.transform.position - transform.position;
+        foodDirX = FoodDirection.x;
+        foodDirY = FoodDirection.y;
+
+        foodX = Food.transform.position.x;
+        foodY = Food.transform.position.y;
+
+        // Float Value to Hold Distance from Snake Head to Food
+        DistanceToFood = FoodDirection.magnitude;
+
+        if (movesLeft == 0)
+        {
+            Perceptron temp = new Perceptron((int)Features.COUNT);
+            temp.RandomizeValues();
+            snakeyUp = snakeyUp.Crossover(snakeyUp, temp);
+            snakeyLeft = snakeyLeft.Crossover(snakeyLeft, temp);
+            snakeyRight = snakeyRight.Crossover(snakeyRight, temp);
+            snakeyDown = snakeyDown.Crossover(snakeyDown, temp);
+
+            tail.Clear();
+            DeleteSegments();
+            transform.SetPositionAndRotation(new Vector3(0, 0, 0), Quaternion.identity);
+
+            movesLeft = 200;
+        }
     }
 
     void Move()
     {
+        movesLeft--;   
+
         // Saves current head position
         Vector2 v = transform.position;
 
+
+        float[] featureVec = new float[(int)Features.COUNT];
+
+        featureVec[(int)Features.FoodX] = foodX;
+        featureVec[(int)Features.FoodY] = foodY;
+        featureVec[(int)Features.FoodDirX] = foodDirX;
+        featureVec[(int)Features.FoodDirY] = foodDirY;
+        featureVec[(int)Features.DistToFood] = DistanceToFood;
+
+        Debug.Log("Food X " + foodX);
+        Debug.Log("Food Y " + foodY);
+
+        if (foodX > transform.position.x)
+        {
+            snakeyRight.bias += 0.5f;
+
+            snakeyLeft.bias -= 0.5f;
+            snakeyUp.bias -= 0.5f;
+            snakeyDown.bias -= 0.5f;
+        }
+
+        if (foodX < transform.position.x)
+        {
+            snakeyLeft.bias += 0.5f;
+
+            snakeyRight.bias -= 0.5f;
+            snakeyUp.bias -= 0.5f;
+            snakeyDown.bias -= 0.5f;
+        }
+
+        if (foodY > transform.position.y)
+        {
+            snakeyUp.bias += 0.6f;
+
+            snakeyLeft.bias -= 0.5f;
+            snakeyRight.bias -= 0.5f;
+            snakeyDown.bias -= 0.5f;
+        }
+
+        if (foodY < transform.position.y)
+        {
+            snakeyDown.bias += 0.6f;
+
+            snakeyLeft.bias -= 0.5f;
+            snakeyRight.bias -= 0.5f;
+            snakeyUp.bias -= 0.5f;
+        }
+
+        perceptronUpOutput = snakeyUp.Evaluate(featureVec);
+        perceptronDownOutput = snakeyDown.Evaluate(featureVec);
+        perceptronLeftOutput = snakeyLeft.Evaluate(featureVec);
+        perceptronRightOutput = snakeyRight.Evaluate(featureVec);
+
+        Debug.Log("Output of SnakeyTron Up " + perceptronUpOutput);
+        Debug.Log("Output of SnakeyTron Down " + perceptronDownOutput);
+        Debug.Log("Output of SnakeyTron Left " + perceptronLeftOutput);
+        Debug.Log("Output of SnakeyTron Right " + perceptronRightOutput);
+
+        if (perceptronUpOutput > perceptronDownOutput && perceptronUpOutput > perceptronLeftOutput && perceptronUpOutput > perceptronRightOutput)
+        {
+            dir = Vector2.up;
+        }
+
+        if (perceptronDownOutput > perceptronUpOutput && perceptronDownOutput > perceptronLeftOutput && perceptronDownOutput > perceptronRightOutput)
+        {
+            dir = Vector2.down;
+        }
+
+        if (perceptronLeftOutput > perceptronRightOutput && perceptronLeftOutput > perceptronUpOutput && perceptronLeftOutput > perceptronDownOutput)
+        {
+            dir = Vector2.left;
+        }
+
+        if (perceptronRightOutput > perceptronLeftOutput && perceptronRightOutput > perceptronUpOutput && perceptronRightOutput > perceptronDownOutput)
+        {
+            dir = Vector2.right;
+        }
+
+        //else
+        //{
+        //    Debug.Log("OUTPUTS ARE SAME SHIT");
+        //    dir = Vector2.zero;
+        //}
+
         transform.Translate(dir);
+
+        snakeyUp.bias = 0.0f;
+        snakeyDown.bias = 0.0f;
+        snakeyLeft.bias = 0.0f;
+        snakeyRight.bias = 0.0f;
 
         if (foodEaten)
         {
@@ -68,6 +250,10 @@ public class SnakeLogic : MonoBehaviour
             len++;
 
             foodEaten = false;
+
+            Food = GameObject.FindGameObjectWithTag("Food");
+
+            movesLeft = 100;
         }
 
 
@@ -80,6 +266,7 @@ public class SnakeLogic : MonoBehaviour
             tail.Insert(0, tail.Last());
             tail.RemoveAt(tail.Count - 1);
         }
+
     }
 
     void DeleteSegments()
@@ -105,18 +292,19 @@ public class SnakeLogic : MonoBehaviour
         }
 
         // Collided with Tail or Border
-        else if (coll.CompareTag("Border"))
+        else if (coll.CompareTag("Border") || coll.CompareTag("Segment"))
         {
+            Perceptron temp = new Perceptron((int)Features.COUNT);
+            temp.RandomizeValues();
+
+            snakeyUp = snakeyUp.Crossover(snakeyUp, temp);
+            snakeyLeft = snakeyLeft.Crossover(snakeyLeft, temp);
+            snakeyRight = snakeyRight.Crossover(snakeyRight, temp);
+            snakeyDown = snakeyDown.Crossover(snakeyDown, temp);
+
             tail.Clear();
             DeleteSegments();
             transform.SetPositionAndRotation(new Vector3(0,0,0), Quaternion.identity);
-        }
-
-        else if (coll.CompareTag("Segment"))
-        {
-            tail.Clear();
-            DeleteSegments();
-            transform.SetPositionAndRotation(new Vector3(0, 0, 0), Quaternion.identity);
         }
     }
 }
@@ -125,7 +313,7 @@ internal class Perceptron
 {
     public float bias = 0.0f;
 
-    private System.Random random;
+    private System.Random random = new System.Random();
 
     private unsafe float[] weights;
 
@@ -202,21 +390,24 @@ internal class Perceptron
         const float e = 2.71828182845904523536f;
 
         return 1.0f / (1.0f + Mathf.Pow(e, -val));
-    }
+        //return (Mathf.Pow(e, val) / (Mathf.Pow(e, val) + 1));
+    } 
 
     float RandomRange(float min, float max)
     {
-        return min + ((max - min) * (float)random.NextDouble() / 1.0f);
+        float temp = min + ((max - min) * (float)random.NextDouble() / 1.0f);
+        Debug.Log("Random Range = " + temp);
+        return temp;
     }
 
-    void RandomizeValues()
+    public void RandomizeValues()
     {
         for (int i = 0; i < featureVectorSize; ++i)
         {
-            weights[i] = RandomRange(-2.0f, 2.0f); // This range of [-2, 2] is arbitrary.
+            weights[i] = RandomRange(-2.0f, 2.0f);
         }
 
-        bias = RandomRange(-2.0f, 2.0f);
+        bias = RandomRange(0.0f, 1.0f);
     }
 }
 
