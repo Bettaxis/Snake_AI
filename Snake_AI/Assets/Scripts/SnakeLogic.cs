@@ -51,7 +51,7 @@ public class SnakeLogic : MonoBehaviour
 
     //long fitness = 0;
 
-    int movesLeft = 200;
+    int movesLeft = 400;
 
     //int growCount = 0;
 
@@ -96,22 +96,32 @@ public class SnakeLogic : MonoBehaviour
         snakeyLeft.SetWeights(weightVector);
         snakeyRight.SetWeights(weightVector);
         snakeyDown.SetWeights(weightVector);
+        
+        Perceptron temp = new Perceptron((int)Features.COUNT);
+        temp.RandomizeValues();
+
+        snakeyUp = snakeyUp.Crossover(snakeyUp, temp);
+        snakeyLeft = snakeyLeft.Crossover(snakeyLeft, temp);
+        snakeyRight = snakeyRight.Crossover(snakeyRight, temp);
+        snakeyDown = snakeyDown.Crossover(snakeyDown, temp);
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
-        if (Input.GetKey(KeyCode.RightArrow) && dir != Vector2.left)
-            dir = Vector2.right;
+        //Debug.Log(movesLeft);
 
-        else if (Input.GetKey(KeyCode.DownArrow) && dir != Vector2.up)
-            dir = Vector2.down;
-
-        else if (Input.GetKey(KeyCode.LeftArrow) && dir != Vector2.right)
-            dir = Vector2.left; 
-
-        else if (Input.GetKey(KeyCode.UpArrow) && dir != Vector2.down)
-            dir = Vector2.up;
+        //if (Input.GetKey(KeyCode.RightArrow) && dir != Vector2.left)
+        //    dir = Vector2.right;
+        //
+        //else if (Input.GetKey(KeyCode.DownArrow) && dir != Vector2.up)
+        //    dir = Vector2.down;
+        //
+        //else if (Input.GetKey(KeyCode.LeftArrow) && dir != Vector2.right)
+        //    dir = Vector2.left; 
+        //
+        //else if (Input.GetKey(KeyCode.UpArrow) && dir != Vector2.down)
+        //    dir = Vector2.up;
 
 
         Food = GameObject.FindGameObjectWithTag("Food");
@@ -140,7 +150,7 @@ public class SnakeLogic : MonoBehaviour
             DeleteSegments();
             transform.SetPositionAndRotation(new Vector3(0, 0, 0), Quaternion.identity);
 
-            movesLeft = 200;
+            movesLeft = 400;
         }
     }
 
@@ -165,38 +175,38 @@ public class SnakeLogic : MonoBehaviour
 
         if (foodX > transform.position.x)
         {
-            snakeyRight.bias += 0.5f;
+            snakeyRight.bias += 0.05f;
 
-            snakeyLeft.bias -= 0.5f;
-            snakeyUp.bias -= 0.5f;
-            snakeyDown.bias -= 0.5f;
+            snakeyLeft.bias -= 0.05f;
+            snakeyUp.bias -= 0.05f;
+            snakeyDown.bias -= 0.05f;
         }
 
         if (foodX < transform.position.x)
         {
-            snakeyLeft.bias += 0.5f;
+            snakeyLeft.bias += 0.05f;
 
-            snakeyRight.bias -= 0.5f;
-            snakeyUp.bias -= 0.5f;
-            snakeyDown.bias -= 0.5f;
+            snakeyRight.bias -= 0.05f;
+            snakeyUp.bias -= 0.05f;
+            snakeyDown.bias -= 0.05f;
         }
 
         if (foodY > transform.position.y)
         {
-            snakeyUp.bias += 0.6f;
+            snakeyUp.bias += 0.06f;
 
-            snakeyLeft.bias -= 0.5f;
-            snakeyRight.bias -= 0.5f;
-            snakeyDown.bias -= 0.5f;
+            snakeyLeft.bias -= 0.05f;
+            snakeyRight.bias -= 0.05f;
+            snakeyDown.bias -= 0.05f;
         }
 
         if (foodY < transform.position.y)
         {
-            snakeyDown.bias += 0.6f;
+            snakeyDown.bias += 0.06f;
 
-            snakeyLeft.bias -= 0.5f;
-            snakeyRight.bias -= 0.5f;
-            snakeyUp.bias -= 0.5f;
+            snakeyLeft.bias -= 0.05f;
+            snakeyRight.bias -= 0.05f;
+            snakeyUp.bias -= 0.05f;
         }
 
         perceptronUpOutput = snakeyUp.Evaluate(featureVec);
@@ -253,7 +263,7 @@ public class SnakeLogic : MonoBehaviour
 
             Food = GameObject.FindGameObjectWithTag("Food");
 
-            movesLeft = 100;
+            movesLeft = 400;
         }
 
 
@@ -292,7 +302,7 @@ public class SnakeLogic : MonoBehaviour
         }
 
         // Collided with Tail or Border
-        else if (coll.CompareTag("Border") || coll.CompareTag("Segment"))
+        else if (coll.CompareTag("Border")) //|| coll.CompareTag("Segment"))
         {
             Perceptron temp = new Perceptron((int)Features.COUNT);
             temp.RandomizeValues();
@@ -355,10 +365,10 @@ internal class Perceptron
 
         for(int i = 0; i < result.featureVectorSize; i++)
         {
-            result.weights[i] = (p1.weights[i] + p2.weights[i]) / 2.0f;
+            result.weights[i] = (p1.weights[i] + p2.weights[i]) / 100.0f;
         }
 
-        result.bias = (p1.bias + p2.bias) / 2.0f;
+        result.bias = (p1.bias + p2.bias) / 100.0f;
 
         return result;
     }
