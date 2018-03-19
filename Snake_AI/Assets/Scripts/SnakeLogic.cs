@@ -327,10 +327,26 @@ internal class Perceptron
 
     private unsafe float[] weights;
 
+    private unsafe float[] featureVector;
+
     int featureVectorSize;
 
     public Perceptron(int _featureVectorSize)
     {
+        featureVectorSize = _featureVectorSize;
+
+        weights = new float[featureVectorSize];
+
+        for (int i = 0; i < featureVectorSize; ++i)
+        {
+            weights[i] = 0.0f;
+        }
+    }
+    public Perceptron(int _featureVectorSize, float[] featureVectors)
+    {
+        //Setting the internal featureVectors to the provided set
+        featureVector = featureVectors;
+
         featureVectorSize = _featureVectorSize;
 
         weights = new float[featureVectorSize];
@@ -354,7 +370,7 @@ internal class Perceptron
         }
     }
 
-     ~Perceptron()
+    ~Perceptron()
     {
         weights.Initialize();
     }
@@ -363,7 +379,7 @@ internal class Perceptron
     {
         Perceptron result = new Perceptron(p1.featureVectorSize);
 
-        for(int i = 0; i < result.featureVectorSize; i++)
+        for (int i = 0; i < result.featureVectorSize; i++)
         {
             result.weights[i] = (p1.weights[i] + p2.weights[i]) / 100.0f;
         }
@@ -372,7 +388,23 @@ internal class Perceptron
 
         return result;
     }
+    
+    // Used when creating a Neural Net
+    public float Evaluate()
+    {
+        float result = 0.0f;
 
+        for (int i = 0; i < featureVectorSize; ++i)
+        {
+            result += featureVector[i] * weights[i];
+        }
+
+        result += bias;
+
+        return SigmoidFunction(result);
+    }
+
+    // Used when creating Single Perceptron
     public float Evaluate(float[] featureVector)
     {
         float result = 0.0f;
@@ -401,7 +433,7 @@ internal class Perceptron
 
         return 1.0f / (1.0f + Mathf.Pow(e, -val));
         //return (Mathf.Pow(e, val) / (Mathf.Pow(e, val) + 1));
-    } 
+    }
 
     float RandomRange(float min, float max)
     {
@@ -421,3 +453,94 @@ internal class Perceptron
     }
 }
 
+internal class NeuralNet
+{
+    private unsafe float[] HiddenWeightsToSet;
+
+    private unsafe float[] OutputWeightsToSet;
+
+    private unsafe float[] OutputFloats;
+
+    Perceptron[] Inputs;
+    Perceptron[] Hidden;
+    Perceptron[] Outputs;
+
+    Perceptron[] OutputLayer;
+
+    //Creates a Neural Net and Sets the Final Output Layer to OutputLayer
+    public NeuralNet(Perceptron[] Input, Perceptron[] Hidden, Perceptron[] Output)
+    {
+        for (int i = 0; i < Input.Length; i++)
+        {
+            HiddenWeightsToSet[i] = Input[i].Evaluate();
+        }
+
+        for (int i = 0; i < Hidden.Length; i++)
+        {
+            Hidden[i].SetWeights(HiddenWeightsToSet);
+        }
+
+        for (int i = 0; i < Input.Length; i++)
+        {
+            OutputWeightsToSet[i] = Hidden[i].Evaluate();
+        }
+
+        for (int i = 0; i < Output.Length; i++)
+        {
+            Output[i].SetWeights(OutputWeightsToSet);
+        }
+
+        OutputLayer = Output;
+
+        CreateLayers(5,4,8);
+    }
+
+    public float[] Evaluate(NeuralNet n)
+    {
+        for (int i = 0; i < OutputLayer.Length; i++)
+        {
+            n.OutputFloats[i] = OutputLayer[i].Evaluate();
+        }
+
+        return OutputFloats;
+    }
+
+    //Creates Perceptron Layers with provided Feature Vector Sizes
+    public void CreateLayers(int fv1, int fv2, int fv3)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            Inputs[i] = new Perceptron(fv1);
+        }
+
+        for (int i = 0; i < 8; i++)
+        {
+            Hidden[i] = new Perceptron(fv2);
+        }
+
+        for (int i = 0; i < 4; i++)
+        {
+            Outputs[i] = new Perceptron(fv3);
+        }
+    }
+
+    public NeuralNet Crossover(NeuralNet n1, NeuralNet n2)
+    {
+        NeuralNet result = new NeuralNet(Inputs, Hidden, Outputs);
+
+        for (int i = 0; i < n1.HiddenWeightsToSet.Length; i++)
+        {
+            result.HiddenWeightsToSet[i] = (n1.HiddenWeightsToSet[i] + n2.HiddenWeightsToSet[i]) / 100.0f;
+        }
+
+        for (int i = 0; i < n1.OutputWeightsToSet.Length; i++)
+        {
+            result.OutputWeightsToSet[i] = (n1.OutputWeightsToSet[i] + n2.OutputWeightsToSet[i]) / 100.0f;
+        }
+
+        //Figure out if the Perceptron Bias has to cross over in here or not.
+        //result[i].bias = (p1.bias + p2.bias) / 100.0f;
+
+        return result;
+    }
+}
