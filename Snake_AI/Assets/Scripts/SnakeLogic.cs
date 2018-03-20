@@ -40,6 +40,9 @@ public class SnakeLogic : MonoBehaviour
 
     GameObject Food;
 
+    public GameObject FoodSpawnScriptObject;
+    private FoodSpawn fs;
+
     //Perceptron snakeyLeft = new Perceptron((int)Features.COUNT);
     //Perceptron snakeyRight = new Perceptron((int)Features.COUNT);
     //Perceptron snakeyUp = new Perceptron((int)Features.COUNT);
@@ -95,6 +98,7 @@ public class SnakeLogic : MonoBehaviour
     void Start()
     {
         Food = GameObject.FindGameObjectWithTag("Food");
+        fs = FoodSpawnScriptObject.GetComponent<FoodSpawn>();
 
         List<float> weightVector = new List<float>(5);
 
@@ -363,6 +367,8 @@ public class SnakeLogic : MonoBehaviour
 
             foodEaten = false;
 
+            fs.foodSpawned--;
+
             Food = GameObject.FindGameObjectWithTag("Food");
 
             movesLeft = 400;
@@ -401,6 +407,10 @@ public class SnakeLogic : MonoBehaviour
 
             // Remove the Food
             Destroy(coll.gameObject);
+
+            fs.SpawnFood();
+
+            Food = GameObject.FindGameObjectWithTag("Food");
         }
 
         // Collided with Tail or Border
@@ -417,6 +427,8 @@ public class SnakeLogic : MonoBehaviour
             tail.Clear();
             DeleteSegments();
             transform.SetPositionAndRotation(new Vector3(0,0,0), Quaternion.identity);
+
+            SnakeNN.Randomize();
         }
     }
 }
@@ -650,12 +662,6 @@ internal class NeuralNet
         {
             OutputFloats[i] = Outputs[i].Evaluate();
             debugStr += Outputs[i].Evaluate() + ",";
-
-            for(int a = 0; a < Outputs[i].featureVector.Count; a++)
-            {
-                Debug.Log(Outputs[i].featureVector[a]);
-            }
-            //Debug.Log()
         }
         Debug.Log(debugStr);
     }

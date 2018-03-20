@@ -16,37 +16,34 @@ public class FoodSpawn : MonoBehaviour
     public Transform borderLeft;
     public Transform borderRight;
 
-    private bool foodSpawned = false;
+    public int foodSpawned = 0;
 
     // Use this for initialization
     void Start()
     {
-        int x = (int)Random.Range(borderLeft.position.x, borderRight.position.x);
-        int y = (int)Random.Range(borderTop.position.y, borderBottom.position.y);
-        Instantiate(foodPrefab, new Vector2(x, y), Quaternion.identity);
-        foodSpawned = true;
+        int x = (int)Random.Range(borderLeft.position.x + 2, borderRight.position.x - 2);
+        int y = (int)Random.Range(borderTop.position.y - 2, borderBottom.position.y + 2);
+        Instantiate(foodPrefab, new Vector2(x,y), Quaternion.identity);
+        foodSpawned++;
 
         InvokeRepeating("SpawnFood", .5f, .5f);
         sl = Snake.GetComponent<SnakeLogic>();
     }
 
-    void SpawnFood()
+    public void SpawnFood()
     {
-        if (foodSpawned == false)
+        if (foodSpawned < 2)
         {
             int x = (int)Random.Range(borderLeft.position.x + 2, borderRight.position.x - 2);
             int y = (int)Random.Range(borderTop.position.y - 2, borderBottom.position.y + 2);
+
             Instantiate(foodPrefab, new Vector2(x, y), Quaternion.identity);
-            foodSpawned = true;
+            foodSpawned++;
         }
     }
 
     void Update()
     {
-        if (sl.foodEaten == true)
-        {
-            foodSpawned = false;
-        }
     }
 
 }
