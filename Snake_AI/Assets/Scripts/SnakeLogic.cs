@@ -50,9 +50,16 @@ public class SnakeLogic : MonoBehaviour
 
     NeuralNet SnakeNN;
 
-    Perceptron[] InputLayerArray =  new Perceptron[5];
-    Perceptron[] HiddenLayerArray = new Perceptron[8];
-    Perceptron[] OutputLayerArray = new Perceptron[4];
+    //Used to hold the different nets
+    List<NeuralNet> ListOfNets = new List<NeuralNet>();
+
+    //Perceptron[] InputLayerArray =  new Perceptron[5];
+    //Perceptron[] HiddenLayerArray = new Perceptron[8];
+    //Perceptron[] OutputLayerArray = new Perceptron[4];
+
+    List<Perceptron> InputLayerArray = new List<Perceptron>();
+    List<Perceptron> HiddenLayerArray = new List<Perceptron>();
+    List<Perceptron> OutputLayerArray = new List<Perceptron>();
 
     Perceptron snakeyIn1 = new Perceptron();
     Perceptron snakeyIn2 = new Perceptron();
@@ -74,10 +81,17 @@ public class SnakeLogic : MonoBehaviour
     Perceptron Output3 = new Perceptron();
     Perceptron Output4 = new Perceptron();
 
-    int movesLeft = 400;
+    int movesLeft = 200; //Counter for Times Snake Can Move
+
+    int moves = 0; //Number of moves done
 
     int len = 1; // Length of Snake
+    int deaths = 0; //Times Snake Has Died
+    int foodConsumed = 0; //Times Food Was Eaten
+    int lifetime = 0; //Times the snake moved before death;
+    int generations = 0; 
 
+    // Floats to hold outputs from final layer
     float perceptronUpOutput = 0.0f;
     float perceptronDownOutput = 0.0f;
     float perceptronLeftOutput = 0.0f;
@@ -89,10 +103,13 @@ public class SnakeLogic : MonoBehaviour
     float DistanceToFood = 0;
 
     //Set Initial Direction to Move
-    Vector2 dir = Vector2.right;
+    Vector2 dir; // = Vector2.right;
 
     //bool alive = true;
     //bool testing = false;
+
+    public bool foodEaten = false;
+    public GameObject tailPrefab;
 
     // Use this for initialization
     void Start()
@@ -114,19 +131,19 @@ public class SnakeLogic : MonoBehaviour
         snakeyIn4.SetInputWeights(weightVector[3]);
         snakeyIn5.SetInputWeights(weightVector[4]);
         
-        InputLayerArray[0] = snakeyIn1;
-        InputLayerArray[1] = snakeyIn2;
-        InputLayerArray[2] = snakeyIn3;
-        InputLayerArray[3] = snakeyIn4;
-        InputLayerArray[4] = snakeyIn5;
+        InputLayerArray.Add(snakeyIn1);
+        InputLayerArray.Add(snakeyIn2);
+        InputLayerArray.Add(snakeyIn3);
+        InputLayerArray.Add(snakeyIn4);
+        InputLayerArray.Add(snakeyIn5);
 
         List<float> HiddenWeightVector = new List<float>(5);
 
-        HiddenWeightVector.Insert(0, 0.5f);
-        HiddenWeightVector.Insert(1, 0.4f);
-        HiddenWeightVector.Insert(2, 0.3f);
-        HiddenWeightVector.Insert(3, 0.6f);
-        HiddenWeightVector.Insert(4, 0.4f);
+        HiddenWeightVector.Insert(0,0.5f);
+        HiddenWeightVector.Insert(1,0.4f);
+        HiddenWeightVector.Insert(2,0.3f);
+        HiddenWeightVector.Insert(3,0.6f);
+        HiddenWeightVector.Insert(4,0.4f);
 
         Hidden1.SetWeights(HiddenWeightVector);
         Hidden2.SetWeights(HiddenWeightVector);
@@ -137,35 +154,35 @@ public class SnakeLogic : MonoBehaviour
         Hidden7.SetWeights(HiddenWeightVector);
         Hidden8.SetWeights(HiddenWeightVector);
 
-        HiddenLayerArray[0] = Hidden1;
-        HiddenLayerArray[1] = Hidden2;
-        HiddenLayerArray[2] = Hidden3;
-        HiddenLayerArray[3] = Hidden4;
-        HiddenLayerArray[4] = Hidden5;
-        HiddenLayerArray[5] = Hidden6;
-        HiddenLayerArray[6] = Hidden7;
-        HiddenLayerArray[7] = Hidden8;
+        HiddenLayerArray.Add(Hidden1);
+        HiddenLayerArray.Add(Hidden2);
+        HiddenLayerArray.Add(Hidden3);
+        HiddenLayerArray.Add(Hidden4);
+        HiddenLayerArray.Add(Hidden5);
+        HiddenLayerArray.Add(Hidden6);
+        HiddenLayerArray.Add(Hidden7);
+        HiddenLayerArray.Add(Hidden8);
 
         List<float> OutputWeightVector = new List<float>(8);
 
-        OutputWeightVector.Insert(0, 0.3f);
-        OutputWeightVector.Insert(1, 0.2f);
-        OutputWeightVector.Insert(2, 0.1f);
-        OutputWeightVector.Insert(3, 0.6f);
-        OutputWeightVector.Insert(4, 0.3f);
-        OutputWeightVector.Insert(5, 0.25f);
-        OutputWeightVector.Insert(6, 0.6f);
-        OutputWeightVector.Insert(7, 0.8f);
+        OutputWeightVector.Insert(0,0.3f);
+        OutputWeightVector.Insert(1,0.2f);
+        OutputWeightVector.Insert(2,0.1f);
+        OutputWeightVector.Insert(3,0.6f);
+        OutputWeightVector.Insert(4,0.3f);
+        OutputWeightVector.Insert(5,0.25f);
+        OutputWeightVector.Insert(6,0.6f);
+        OutputWeightVector.Insert(7,0.8f);
 
         Output1.SetWeights(OutputWeightVector);
         Output2.SetWeights(OutputWeightVector);
         Output3.SetWeights(OutputWeightVector);
         Output4.SetWeights(OutputWeightVector);
 
-        OutputLayerArray[0] = Output1;
-        OutputLayerArray[1] = Output2;
-        OutputLayerArray[2] = Output3;
-        OutputLayerArray[3] = Output4;
+        OutputLayerArray.Add(Output1);
+        OutputLayerArray.Add(Output2);
+        OutputLayerArray.Add(Output3);
+        OutputLayerArray.Add(Output4);
 
         //Perceptron temp = new Perceptron((int)Features.COUNT);
 
@@ -173,24 +190,24 @@ public class SnakeLogic : MonoBehaviour
 
         //InputLayerArray[0] = temp;
 
-        for (int i = 0; i < InputLayerArray.Length; i++)
-        {
-            InputLayerArray[i].RandomizeValues();
-        }
+       // for (int i = 0; i < InputLayerArray.Length; i++)
+       // {
+       //     InputLayerArray[i].RandomizeValues();
+       // }
 
-        for (int i = 0; i < HiddenLayerArray.Length; i++)
+        for (int i = 0; i < HiddenLayerArray.Count; i++)
         {
             HiddenLayerArray[i].RandomizeValues();
         }
 
-        for (int i = 0; i < OutputLayerArray.Length; i++)
+        for (int i = 0; i < OutputLayerArray.Count; i++)
         {
             OutputLayerArray[i].RandomizeValues();
         }
 
-        NeuralNet SnakeNNTemp = new NeuralNet(InputLayerArray, HiddenLayerArray, OutputLayerArray);
+        SnakeNN = new NeuralNet(InputLayerArray, HiddenLayerArray, OutputLayerArray);
 
-        SnakeNN = SnakeNNTemp;  
+        //SnakeNN = SnakeNNTemp;  
 
         SnakeNN.Randomize();
 
@@ -235,27 +252,23 @@ public class SnakeLogic : MonoBehaviour
         // Float Value to Hold Distance from Snake Head to Food
         DistanceToFood = FoodDirection.magnitude;
 
-        /*
-        if (movesLeft == 0)
+        
+        if (movesLeft <= 0)
         {
-            Perceptron temp = new Perceptron((int)Features.COUNT);
-            temp.RandomizeValues();
-            snakeyUp = snakeyUp.Crossover(snakeyUp, temp);
-            snakeyLeft = snakeyLeft.Crossover(snakeyLeft, temp);
-            snakeyRight = snakeyRight.Crossover(snakeyRight, temp);
-            snakeyDown = snakeyDown.Crossover(snakeyDown, temp);
+            SnakeNN.Randomize();
 
             tail.Clear();
             DeleteSegments();
             transform.SetPositionAndRotation(new Vector3(0, 0, 0), Quaternion.identity);
 
-            movesLeft = 400;
+            movesLeft = 200;
         }
-        */
+        
     }
 
     void Move()
     {
+        moves++;
         movesLeft--;   
 
         // Saves current head position
@@ -317,8 +330,8 @@ public class SnakeLogic : MonoBehaviour
 
         perceptronUpOutput = SnakeNN.OutputFloats[0];
         perceptronDownOutput = SnakeNN.OutputFloats[1];
-        perceptronLeftOutput = SnakeNN.OutputFloats[2];
-        perceptronRightOutput = SnakeNN.OutputFloats[3];
+        perceptronRightOutput = SnakeNN.OutputFloats[2];
+        perceptronLeftOutput = SnakeNN.OutputFloats[3];
 
         // Debug.Log("Output of NeuralNet Up " + perceptronUpOutput);
         // Debug.Log("Output of NeuralNet Down " + perceptronDownOutput);
@@ -366,10 +379,10 @@ public class SnakeLogic : MonoBehaviour
             len++;
 
             foodEaten = false;
-
-            fs.foodSpawned--;
-
+            
             Food = GameObject.FindGameObjectWithTag("Food");
+
+            foodConsumed += 10;
 
             movesLeft = 400;
         }
@@ -395,8 +408,17 @@ public class SnakeLogic : MonoBehaviour
             GameObject.Destroy(segment);
     }
 
-    public bool foodEaten = false;
-    public GameObject tailPrefab;
+    int CalculateFitness()
+    {
+        int fitness = len + moves + foodConsumed;
+
+        SnakeNN.fitness = fitness;
+
+        moves = 0;
+        foodConsumed = 0;
+
+        return 0;
+    }
 
     void OnTriggerEnter2D(Collider2D coll)
     {
@@ -405,10 +427,12 @@ public class SnakeLogic : MonoBehaviour
             // Get longer in next Move call
             foodEaten = true;
 
+            fs.foodSpawned = false;
+            fs.SpawnFood();
+
             // Remove the Food
             Destroy(coll.gameObject);
 
-            fs.SpawnFood();
 
             Food = GameObject.FindGameObjectWithTag("Food");
         }
@@ -423,12 +447,68 @@ public class SnakeLogic : MonoBehaviour
             //snakeyLeft = snakeyLeft.Crossover(snakeyLeft, temp);
             //snakeyRight = snakeyRight.Crossover(snakeyRight, temp);
             //snakeyDown = snakeyDown.Crossover(snakeyDown, temp);
+            deaths++;
+
+            Debug.Log("Number of Input Neurons " + SnakeNN.Inputs.Count);
+            Debug.Log("Number of Input Weights " + SnakeNN.Inputs[4].weights.Count);
+
+            Debug.Log("Number of Hidden Neurons " + SnakeNN.Hiddens.Count);
+            Debug.Log("Number of Hidden Weights " + SnakeNN.Hiddens[7].weights.Count);
+
+            Debug.Log("Number of Output Neurons " + SnakeNN.Outputs.Count);
+            Debug.Log("Number of Output Weights " + SnakeNN.Outputs[3].weights.Count);
+
+            SnakeNN.Randomize();
+
+            /*
+            if (deaths == 2)
+            {
+            CalculateFitness();
+            ListOfNets.Add(SnakeNN);// new NeuralNet(SnakeNN));
+            SnakeNN.Randomize();
+            generations++;
+            deaths = 0;
+            }
+
+            if (generations == 2)
+            {
+                int fitnessFirst = 0;
+                int fitnessSecond = 0;
+
+                NeuralNet BestNN = null;
+                NeuralNet SecondBestNN = null;
+
+                foreach (NeuralNet n in ListOfNets)
+                {
+                    if (n.fitness > fitnessFirst)
+                    {
+                        fitnessSecond = fitnessFirst;
+
+                        SecondBestNN = BestNN;
+
+                        fitnessFirst = n.fitness;
+
+                        BestNN = n;
+                    }
+
+                    else if (n.fitness > fitnessSecond)
+                    {
+                        fitnessSecond = n.fitness;
+                        SecondBestNN = n;
+                    }
+                }
+                generations = 0;
+                SnakeNN = SnakeNN.Crossover(BestNN, SecondBestNN);
+                Debug.Log("CROSS! CHECK! HA!");
+            }
+            */
+
 
             tail.Clear();
             DeleteSegments();
             transform.SetPositionAndRotation(new Vector3(0,0,0), Quaternion.identity);
 
-            SnakeNN.Randomize();
+            movesLeft = 200;
         }
     }
 }
@@ -460,7 +540,7 @@ internal class Perceptron
         featureVector = a_featureVector;
     }
 
-    public Perceptron Crossover(Perceptron p1, Perceptron p2)
+    /*public Perceptron Crossover(Perceptron p1, Perceptron p2)
     {
         Perceptron result = new Perceptron(p1);
 
@@ -472,7 +552,7 @@ internal class Perceptron
         result.bias = (p1.bias + p2.bias) / 2.0f;
 
         return result;
-    }
+    }*/
     
     // Used when creating a Neural Net
     public float Evaluate()
@@ -481,6 +561,11 @@ internal class Perceptron
 
         for (int i = 0; i < featureVector.Count; i++)
         {
+           // if(i >= weights.Count)
+           // {
+           //     Debug.Log("Weights out of range @ line ~552! i: " + i + " of " + featureVector.Count);
+           //     break;
+           // }
             result += featureVector[i] * weights[i];
         }
 
@@ -594,12 +679,34 @@ internal class NeuralNet
 
     public Perceptron[] OutputLayer;
 
-    //Creates a Neural Net and Sets the Final Output Layer to OutputLayer
-    public NeuralNet(Perceptron[] Input, Perceptron[] Hidden, Perceptron[] Output)
+    public int fitness = 0;
+
+    public NeuralNet()
     {
-        Inputs = new List<Perceptron>(Input);
-        Hiddens = new List<Perceptron>(Hidden);
-        Outputs = new List<Perceptron>(Output);
+
+    }
+    public NeuralNet(NeuralNet n)
+    {
+        // n.Inputs.CopyTo(Inputs.ToArray());
+        // n.Hiddens.CopyTo(Hiddens.ToArray());
+        // n.Outputs.CopyTo(Outputs.ToArray());
+
+        Inputs = n.Inputs;
+        Hiddens = n.Hiddens;
+        Outputs = n.Outputs;
+
+        OutputFloats = n.OutputFloats;
+        OutputLayer = n.OutputLayer;
+        
+        fitness = n.fitness;
+    }
+
+    //Creates a Neural Net and Sets the Final Output Layer to OutputLayer
+    public NeuralNet(List<Perceptron> Input, List<Perceptron> Hidden, List<Perceptron> Output)
+    {
+        Inputs = Input;
+        Hiddens = Hidden;
+        Outputs = Output;
 
         foreach(Perceptron p in Inputs)
         {
@@ -617,6 +724,8 @@ internal class NeuralNet
             }
         }
     }
+
+     
 
     public void EvaluateNN(float[] _InputFloats)
     {
@@ -656,6 +765,7 @@ internal class NeuralNet
             //HiddenResults.Add(r);
         }            
 
+        //Evaluate Outputs
         OutputFloats = new float[Outputs.Count];
         string debugStr = "OUTPUTS: ";
         for (int i = 0; i < Outputs.Count; i++)
@@ -684,28 +794,71 @@ internal class NeuralNet
         //    Outputs[i] = new Perceptron(fv3);
         //}
     }
-    /*
+    
+    
     public NeuralNet Crossover(NeuralNet n1, NeuralNet n2)
     {
-        NeuralNet result = new NeuralNet(Inputs, Hidden, Outputs);
+       NeuralNet result = new NeuralNet(n1.Inputs, n1.Hiddens, n1.Outputs);
 
-        for (int i = 0; i < n1.HiddenFVToSet.Length; i++)
+        List<float> weightsToSet = new List<float>();
+
+        float bias;
+
+        for (int i = 0; i < n1.Inputs.Count; i++)
         {
-            float[] temp = (n1.Hidden[i].weights[i] + n2.Hidden[i].weights[i]) / 100.0f;
-            result.Hidden[i].SetWeights(temp); 
+            float temp = (n1.Inputs[i].weights[0] 
+                + n2.Inputs[i].weights[0]) / 2.0f;
+            weightsToSet.Add(temp);
+
+            bias = (n1.Inputs[i].bias + n2.Inputs[i].bias) / 2.0f;
+
+            result.Inputs[i].SetWeights(weightsToSet);
+
+            result.Inputs[i].bias = bias;
         }
 
-        for (int i = 0; i < n1.OutputWeightsToSet.Length; i++)
+        weightsToSet.Clear();
+
+        for (int i = 0; i < n1.Hiddens.Count; i++)
         {
-            result.OutputWeightsToSet[i] = (n1.OutputWeightsToSet[i] + n2.OutputWeightsToSet[i]) / 100.0f;
+            for(int x = 0; x < n1.Hiddens[i].weights.Count; x++)
+            {
+            float temp = (n1.Hiddens[i].weights[x] 
+                + n2.Hiddens[i].weights[x]) / 2.0f;
+                weightsToSet.Add(temp);
+                Debug.Log("p: " + i + " w: " + x);
+            }
+
+
+            bias = (n1.Hiddens[i].bias + n2.Hiddens[i].bias) / 2.0f;
+
+            result.Hiddens[i].SetWeights(weightsToSet);
+       
+            result.Hiddens[i].bias = bias;
         }
 
+        weightsToSet.Clear();
+
+        for (int i = 0; i < n1.Outputs.Count; i++)
+        {
+            for (int x = 0; x < n1.Outputs[i].weights.Count; x++)
+            {
+                float temp = (n1.Outputs[i].weights[x] + n2.Outputs[i].weights[x]) / 2.0f;
+                weightsToSet.Add(temp);
+            }
+
+            bias = (n1.Outputs[i].bias + n2.Outputs[i].bias) / 2.0f;
+
+            result.Outputs[i].SetWeights(weightsToSet);
+
+            result.Outputs[i].bias = bias;
+        }
         //Figure out if the Perceptron Bias has to cross over in here or not.
         //result[i].bias = (p1.bias + p2.bias) / 100.0f;
             
         return result;
     }
-    */
+    
 
 
     public void Randomize()
